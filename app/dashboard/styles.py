@@ -493,7 +493,7 @@ def apply_styles():
         ::-webkit-scrollbar-thumb:hover {
             background: #4a4a4a;
         }
-
+        
         </style>
         """,
         unsafe_allow_html=True,

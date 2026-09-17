@@ -20,9 +20,9 @@ class ThreatEventManager:
         mistral_cooldown=60.0
     ):
 
-                                                                  
-                     
-                                                                  
+                                                                    
+                      
+                                                                    
 
         self.event_active = False
         self.mistral_processed = False
@@ -31,9 +31,9 @@ class ThreatEventManager:
         self.current_event_id = None
         self.event_counter = 0
 
-                                                                  
+                                                                    
                 
-                                                                  
+                                                                    
 
         self.event_timeout = event_timeout
         self.mistral_cooldown = mistral_cooldown
@@ -41,9 +41,9 @@ class ThreatEventManager:
         self.last_confirmed_time = None
         self.last_mistral_time = None
 
-                                                                  
-                       
-                                                                  
+                                                                    
+                        
+                                                                    
 
     def new_event(self):
 
@@ -53,9 +53,9 @@ class ThreatEventManager:
 
         self.last_confirmed_time = time.monotonic()
 
-                                                                  
-                           
-                                                                  
+                                                                   
+                            
+                                                                   
 
         self.event_counter += 1
 
@@ -66,9 +66,9 @@ class ThreatEventManager:
 
         self.current_event_id = event_id
 
-                                                                  
-                                
-                                                                  
+                                                                   
+                                 
+                                                                   
 
         create_event(
             event_id=event_id,
@@ -119,32 +119,32 @@ class ThreatEventManager:
         )
 
         return snapshot_path
-                                                                  
-                            
-                                                                  
+                                                                    
+                             
+                                                                    
 
     def update(self, confirmed: bool):
 
         now = time.monotonic()
 
-                                                                  
+                                                                   
                    
-                                                                  
+                                                                   
 
         if confirmed:
 
             self.last_confirmed_time = now
 
-                                          
+                                           
             if not self.event_active:
 
                 self.new_event()
 
             return
 
-                                                                  
-                        
-                                                                  
+                                                                   
+                         
+                                                                   
 
         if not self.event_active:
             return
@@ -152,24 +152,24 @@ class ThreatEventManager:
         if self.last_confirmed_time is None:
             return
 
-                                                                  
-                                    
-                                                                  
+                                                                    
+                                     
+                                                                    
 
         elapsed = (
             now - self.last_confirmed_time
         )
 
-                                                                  
-                           
-                                                                  
+                                                                   
+                            
+                                                                   
 
         if elapsed < self.event_timeout:
             return
 
-                                                                  
-                     
-                                                                  
+                                                                   
+                      
+                                                                   
 
         event_id = self.current_event_id
 
@@ -186,9 +186,9 @@ class ThreatEventManager:
 
         self.reset()
 
-                                                                  
-                               
-                                                                  
+                                                                   
+                                
+                                                                   
 
     def should_verify(
         self,
@@ -197,29 +197,29 @@ class ThreatEventManager:
 
         now = time.monotonic()
 
-                                                                  
-                                      
-                                                                  
+                                                                   
+                                       
+                                                                   
 
         self.update(confirmed)
 
-                                                                  
-                                    
-                                                                  
+                                                                   
+                                     
+                                                                   
 
         if not confirmed:
             return False
 
-                                                                  
-                                              
-                                                                  
+                                                                    
+                                                
+                                                                    
 
         if self.mistral_processed:
             return False
 
-                                                                  
-                                 
-                                                                  
+                                                                    
+                                   
+                                                                    
 
         if self.last_mistral_time is not None:
 
@@ -240,15 +240,15 @@ class ThreatEventManager:
 
                 return False
 
-                                                                  
-                         
-                                                                  
+                                                                    
+                           
+                                                                    
 
         return True
 
-                                                                  
-                            
-                                                                  
+                                                                    
+                             
+                                                                    
 
     def mark_mistral_processed(
         self,
@@ -259,9 +259,9 @@ class ThreatEventManager:
         self.mistral_processed = True
         self.last_mistral_time = time.monotonic()
 
-                                                                  
-                                         
-                                                                  
+                                                                    
+                                          
+                                                                    
 
         if self.current_event_id is not None:
 
@@ -275,18 +275,18 @@ class ThreatEventManager:
             "[MISTRAL] Event verification complete"
         )
 
-                                                                  
-                    
-                                                                  
+                                                                    
+                     
+                                                                    
 
     def should_alert(
         self,
         mistral_level: str
     ) -> bool:
 
-                                                                  
-                                
-                                                                  
+                                                                    
+                                 
+                                                                    
 
         if mistral_level == "FALSE ALARM":
 
@@ -299,9 +299,9 @@ class ThreatEventManager:
 
             return False
 
-                                                                  
-                                        
-                                                                  
+                                                                    
+                                         
+                                                                    
 
         if self.alert_sent:
             return False
@@ -310,9 +310,9 @@ class ThreatEventManager:
 
         return True
 
-                                                                  
-                         
-                                                                  
+                                                                    
+                          
+                                                                    
 
     def mark_alert_result(
         self,
@@ -326,9 +326,9 @@ class ThreatEventManager:
                 sent=sent
             )
 
-                                                                  
-                         
-                                                                  
+                                                                    
+                          
+                                                                    
 
     def reset(self):
 

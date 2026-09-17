@@ -384,3 +384,116 @@ def get_recent_events(
     finally:
 
         db.close()
+
+
+# --- Detection records for auditing / training (optional) ---
+class DetectionRecord(Base):
+
+    __tablename__ = "detection_records"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
+    event_id = Column(
+        String(50),
+        nullable=True,
+        index=True
+    )
+
+    track_id = Column(
+        Integer,
+        nullable=True
+    )
+
+    bbox = Column(
+        String(100),
+        nullable=False
+    )
+
+    confidence = Column(
+        Float,
+        nullable=False
+    )
+
+    tracking_consistency = Column(
+        Float,
+        nullable=True
+    )
+
+    frame_index = Column(
+        Integer,
+        nullable=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.now,
+        nullable=False
+    )
+
+
+def create_detection_record(
+    event_id,
+    track_id,
+    bbox,
+    confidence,
+    tracking_consistency=None,
+    frame_index=None
+):
+
+    db = SessionLocal()
+
+    try:
+
+        rec = DetectionRecord(
+            event_id=event_id,
+            track_id=track_id,
+            bbox=','.join(str(int(x)) for x in bbox),
+            confidence=float(confidence),
+            tracking_consistency=tracking_consistency,
+            frame_index=frame_index
+        )
+
+        db.add(rec)
+        db.commit()
+        db.refresh(rec)
+
+        print(
+            f"[DATABASE] Detection record created: {rec.id} (event={event_id})"
+        )
+
+        return rec.id
+
+    except Exception:
+
+        db.rollback()
+        raise
+
+    finally:
+
+        db.close()
+
+
+def get_detections_for_event(
+    event_id,
+    limit=100
+):
+
+    db = SessionLocal()
+
+    try:
+
+        return (
+            db.query(DetectionRecord)
+            .filter(DetectionRecord.event_id == event_id)
+            .order_by(DetectionRecord.created_at.asc())
+            .limit(limit)
+            .all()
+        )
+
+    finally:
+
+        db.close()

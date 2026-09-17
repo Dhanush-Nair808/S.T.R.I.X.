@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Guns']
+
+roboflow:
+  workspace: projects-szgmu
+  project: gun-with-webcam-views-dbgmf
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/projects-szgmu/gun-with-webcam-views-dbgmf/dataset/1

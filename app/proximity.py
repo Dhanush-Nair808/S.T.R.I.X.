@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def calculate_iou(boxA, boxB):
     """Intersection over Union between two boxes (x1,y1,x2,y2)"""
     xA = max(boxA[0], boxB[0])
@@ -25,26 +26,36 @@ def calculate_distance(centerA, centerB):
     return np.sqrt((centerA[0] - centerB[0])**2 + (centerA[1] - centerB[1])**2)
 
 
-def compute_threat_score(weapon_conf, distance, iou, max_distance=350):
+def compute_threat_score(weapon_conf, distance, iou, tracking_consistency=0.0, max_distance=350):
     """
-    Stricter threat score.
+    Threat score that now includes a tracking_consistency signal.
+
+    Weights (starting point):
+      - weapon_conf: 0.35
+      - proximity_score: 0.30
+      - holding_score (IoU-derived): 0.20
+      - tracking_consistency: 0.15
+
+    Returns a float in [0.0, 1.0].
     """
     proximity_score = max(0.0, 1.0 - (distance / max_distance))
     holding_score = min(1.0, iou * 2.5)
 
-                                          
     threat_score = (
-        0.40 * weapon_conf +
-        0.35 * proximity_score +
-        0.25 * holding_score
+        0.35 * weapon_conf +
+        0.30 * proximity_score +
+        0.20 * holding_score +
+        0.15 * tracking_consistency
     )
+
     return round(min(1.0, threat_score), 3)
 
 
 def find_person_weapon_pairs(persons, weapons, max_distance=400):
     """
     For every weapon, find the nearest person and compute metrics.
-    Returns list of pair dicts.
+    Returns list of pair dicts. Weapons may include tracking_consistency
+    populated by an external tracker.
     """
     pairs = []
 
@@ -62,10 +73,13 @@ def find_person_weapon_pairs(persons, weapons, max_distance=400):
             continue
 
         iou = calculate_iou(nearest_person["box"], weapon["box"])
+        tracking_consistency = weapon.get("tracking_consistency", 0.0)
+
         threat = compute_threat_score(
             weapon_conf=weapon["confidence"],
             distance=min_dist,
             iou=iou,
+            tracking_consistency=tracking_consistency,
             max_distance=max_distance
         )
 
@@ -74,6 +88,7 @@ def find_person_weapon_pairs(persons, weapons, max_distance=400):
             "weapon": weapon,
             "distance": min_dist,
             "iou": round(iou, 3),
+            "tracking_consistency": round(tracking_consistency, 3),
             "threat_score": threat
         })
 
