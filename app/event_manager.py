@@ -3,14 +3,24 @@ from datetime import datetime
 import os
 import cv2
 
-from database import (
-    create_event,
-    update_snapshot,
-    update_mistral_result,
-    update_email_status,
-    end_event,
-    SNAPSHOT_DIR
-)
+try:
+    from app.database import (
+        create_event,
+        update_snapshot,
+        update_mistral_result,
+        update_email_status,
+        end_event,
+        SNAPSHOT_DIR
+    )
+except ImportError:
+    from database import (
+        create_event,
+        update_snapshot,
+        update_mistral_result,
+        update_email_status,
+        end_event,
+        SNAPSHOT_DIR
+    )
 
 class ThreatEventManager:
 
@@ -30,6 +40,7 @@ class ThreatEventManager:
 
         self.current_event_id = None
         self.event_counter = 0
+        self.snapshot_saved = False
 
                                                                     
                 
@@ -65,6 +76,7 @@ class ThreatEventManager:
         )
 
         self.current_event_id = event_id
+        self.snapshot_saved = False
 
                                                                    
                                  
@@ -86,13 +98,29 @@ class ThreatEventManager:
         if frame is None:
             return None
 
+        if hasattr(frame, "size") and frame.size == 0:
+            return None
+
+        try:
+            if len(frame.shape) == 2:
+                frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+            elif len(frame.shape) == 3 and frame.mean() < 2.0:
+                print("[EVENT] Empty/black frame rejected before saving snapshot.")
+                return None
+        except Exception:
+            return None
+
+        os.makedirs(SNAPSHOT_DIR, exist_ok=True)
+
         filename = (
             f"{self.current_event_id}.jpg"
         )
 
-        snapshot_path = os.path.join(
-            SNAPSHOT_DIR,
-            filename
+        snapshot_path = os.path.realpath(
+            os.path.join(
+                SNAPSHOT_DIR,
+                filename
+            )
         )
 
         success = cv2.imwrite(
@@ -112,6 +140,7 @@ class ThreatEventManager:
             event_id=self.current_event_id,
             snapshot_path=snapshot_path
         )
+        self.snapshot_saved = True
 
         print(
             f"[EVENT] Snapshot saved: "
@@ -202,6 +231,9 @@ class ThreatEventManager:
                                                                    
 
         self.update(confirmed)
+
+        if confirmed and frame is not None and not self.snapshot_saved:
+            self.save_snapshot(frame)
 
                                                                    
                                      
@@ -337,4 +369,5 @@ class ThreatEventManager:
         self.alert_sent = False
 
         self.current_event_id = None
+        self.snapshot_saved = False
         self.last_confirmed_time = None

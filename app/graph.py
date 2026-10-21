@@ -3,13 +3,23 @@ from typing import TypedDict, List, Optional
 from langgraph.graph import StateGraph, END
 
 import numpy as np
-from detection import WeaponPersonDetector
-from proximity import find_person_weapon_pairs
-from tracker import MultiFrameConfirmer, SimpleTracker
-from alert import EmailAlerter
-from mistral_verification import MistralVerifier
-from event_manager import ThreatEventManager
-from database import create_detection_record
+
+try:
+    from app.detection import WeaponPersonDetector
+    from app.proximity import find_person_weapon_pairs
+    from app.tracker import MultiFrameConfirmer, SimpleTracker
+    from app.alert import EmailAlerter
+    from app.mistral_verification import MistralVerifier
+    from app.event_manager import ThreatEventManager
+    from app.database import create_detection_record
+except ImportError:
+    from detection import WeaponPersonDetector
+    from proximity import find_person_weapon_pairs
+    from tracker import MultiFrameConfirmer, SimpleTracker
+    from alert import EmailAlerter
+    from mistral_verification import MistralVerifier
+    from event_manager import ThreatEventManager
+    from database import create_detection_record
 
 detector = WeaponPersonDetector()
 
@@ -107,6 +117,17 @@ def confirmation_router(state: STRIXState) -> str:
 def mistral_verification_node(state: STRIXState) -> dict:
     pairs = state["pairs"]
 
+    if event_manager.current_event_id is not None:
+        try:
+            snapshot_path = event_manager.save_snapshot(state.get("frame"))
+            if snapshot_path is None:
+                print(
+                    f"[EVENT] No snapshot was saved for "
+                    f"{event_manager.current_event_id}."
+                )
+        except Exception as exc:
+            print(f"[EVENT] Snapshot save failed: {exc}")
+
     if not pairs:
         event_manager.mark_mistral_processed(
             level="FALSE ALARM",
@@ -144,12 +165,6 @@ def mistral_verification_node(state: STRIXState) -> dict:
     print(f"[AI ANALYSIS] Reasoning: {reasoning}")
 
     if level in {"HIGH", "MEDIUM", "LOW"}:
-        try:
-            if event_manager.current_event_id is not None:
-                event_manager.save_snapshot(state.get("frame"))
-        except Exception:
-            pass
-
         try:
             if event_manager.current_event_id is not None:
                 weapon = best["weapon"]

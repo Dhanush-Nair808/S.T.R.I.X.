@@ -1,10 +1,19 @@
 import os
 import time
-import cv2
 
-from graph import build_graph
-from detection import draw_detections
-from database import init_database, SNAPSHOT_DIR
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
+try:
+    from app.graph import build_graph
+    from app.detection import draw_detections
+    from app.database import init_database, SNAPSHOT_DIR
+except ImportError:
+    from graph import build_graph
+    from detection import draw_detections
+    from database import init_database, SNAPSHOT_DIR
 
 LIVE_FEED_PATH = os.path.join(str(SNAPSHOT_DIR), "live_feed.jpg")
 
@@ -22,6 +31,9 @@ def write_live_frame(frame):
         pass
 
 def main():
+    if cv2 is None:
+        raise RuntimeError("OpenCV is required to run the camera loop. Install the project requirements and try again.")
+
     init_database()
     graph = build_graph()
     cap = cv2.VideoCapture(0)

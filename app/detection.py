@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from ultralytics import YOLO
 import cv2
 import numpy as np
@@ -8,13 +10,28 @@ import os
 # - OR separate person (pretrained COCO) + weapon (trained gun-only) models
 # Behavior is chosen automatically based on WEAPON_MODEL_PATH being set.
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+APP_DIR = Path(__file__).resolve().parent
+
+
+def resolve_model_path(*parts: str) -> str:
+    candidates = [
+        PROJECT_ROOT.joinpath(*parts),
+        APP_DIR.joinpath(*parts),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return str(PROJECT_ROOT.joinpath(*parts))
+
+
 # Path to combined model (used when no WEAPON_MODEL_PATH is set)
-MODEL_PATH = "app/models/person_gun_best.pt"
+MODEL_PATH = resolve_model_path("models", "gun_best.pt")
 
 # Optional: separate person and weapon model paths. If WEAPON_MODEL_PATH is set
 # and the file exists, the detector will use two-model mode.
-PERSON_MODEL_PATH = r"D:\Major Project\strix\app\yolov8n.pt"  # default YOLO person model
-WEAPON_MODEL_PATH = r"D:\Major Project\strix\models\gun_best.pt"  # trained gun model
+PERSON_MODEL_PATH = resolve_model_path("app", "yolov8n.pt")
+WEAPON_MODEL_PATH = resolve_model_path("models", "gun_best.pt")
 
 # Class ids and thresholds
 PERSON_CLASS_ID = 0
@@ -39,18 +56,22 @@ class WeaponPersonDetector:
       by class ids (PERSON_CLASS_ID and WEAPON_CLASS_IDS).
     """
 
-    def __init__(self, model_path: str = "app/models/person_gun_best.pt"):
+    def __init__(self, model_path: str | None = None):
         self.model = None
         self.person_model = None
         self.weapon_model = None
         self.two_model = False
 
+        resolved_model_path = model_path or MODEL_PATH
+
         if WEAPON_MODEL_PATH and os.path.exists(WEAPON_MODEL_PATH):
             self.person_model = YOLO(PERSON_MODEL_PATH)
             self.weapon_model = YOLO(WEAPON_MODEL_PATH)
             self.two_model = True
+        elif os.path.exists(resolved_model_path):
+            self.model = YOLO(resolved_model_path)
         else:
-            self.model = YOLO(model_path)
+            raise FileNotFoundError(f"Detection model not found: {resolved_model_path}")
 
     def _parse_results(self, results, class_filter=None, conf_threshold=0.5):
         dets = []
